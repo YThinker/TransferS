@@ -1,0 +1,27 @@
+{
+  "author": {
+    "name": "xingkaiyang"
+  },
+  "name": "secure-transmission",
+  "version": "0.0.1",
+  "description": "Secure transmission using WebRTC",
+  "scripts": {
+    "start": "pnpm -r run start",
+    "start:backend": "pnpm -F backend run start",
+    "start:frontend": "pnpm -F frontend run start",
+    "preinstall": "npx only-allow pnpm",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "WebRTC",
+    "File Transmission"
+  ],
+  "license": "ISC",
+  "devDependencies": {
+    "@types/node": "^20.2.3",
+    "typescript": "^5.0.4"
+  },
+  "engines": {
+    "node": "v16"
+  }
+}

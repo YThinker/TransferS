@@ -1,0 +1,43 @@
+.dialog-body {
+  min-height: 100px;
+}
+
+.dialog-enter .dialog-backdrop {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.dialog-enter-to .dialog-backdrop {
+  opacity: 1;
+}
+
+.dialog-exit .dialog-backdrop {
+  opacity: 1;
+  transition: opacity 0.5s;
+}
+
+.dialog-exit-to .dialog-backdrop {
+  opacity: 0;
+}
+
+.dialog-enter .dialog-body {
+  opacity: 0;
+  backdrop-filter: blur(0);
+  transition: opacity 0.5s, backdrop-filter 0.5s;
+}
+
+.dialog-enter-to .dialog-body {
+  opacity: 1;
+  backdrop-filter: blur(16px);
+}
+
+.dialog-exit .dialog-body {
+  opacity: 1;
+  backdrop-filter: blur(16px);
+  transition: opacity 0.5s, backdrop-filter 0.5s;
+}
+
+.dialog-exit-to .dialog-body {
+  opacity: 0;
+  backdrop-filter: blur(0);
+}

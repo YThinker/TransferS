@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="48px" height="48px" viewBox="0 0 48 48" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>设备</title>
+    <g id="icons" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd">
+        <g id="设备">
+            <rect id="矩形" x="0" y="0" width="48" height="48" rx="8"></rect>
+            <circle id="椭圆形" stroke="#FFFFFF" stroke-width="2" cx="24" cy="24" r="5"></circle>
+            <circle id="椭圆形" stroke="#FFFFFF" stroke-width="2" cx="24" cy="24" r="9"></circle>
+            <circle id="椭圆形" stroke="#FFFFFF" stroke-width="2" cx="24" cy="24" r="13"></circle>
+            <circle id="椭圆形" stroke="#FFFFFF" stroke-width="2" cx="24" cy="24" r="17"></circle>
+            <path d="M27.5,24.5 L27.5,43 C27.5,43.4142136 27.3321068,43.7892136 27.0606602,44.0606602 C26.7892136,44.3321068 26.4142136,44.5 26,44.5 L26,44.5 L22,44.5 C21.5857864,44.5 21.2107864,44.3321068 20.9393398,44.0606602 C20.6678932,43.7892136 20.5,43.4142136 20.5,43 L20.5,43 L20.5,24.5 L27.5,24.5 Z" id="矩形" stroke="#DADADA" fill="#DADADA"></path>
+            <rect id="矩形" fill="#FFFFFF" x="22" y="28" width="4" height="15" rx="2"></rect>
+            <circle id="椭圆形" stroke="#FFFFFF" stroke-width="2" fill="#FFFFFF" cx="24" cy="24" r="1"></circle>
+        </g>
+    </g>
+</svg>

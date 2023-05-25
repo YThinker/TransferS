@@ -1,0 +1,29 @@
+{
+  "name": "TransferS",
+  "short_name": "TransferS",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#fff",
+  "description": "Secure transmission using RTC.",
+  "categories": ["file transfer", "peer-to-peer", "utilities"],
+  "icons": [{
+    "src": "logo_57.png",
+    "sizes": "57x57",
+    "type": "image/png"
+  }, {
+    "src": "logo_114.png",
+    "sizes": "114x114",
+    "type": "image/png"
+  }, {
+    "src": "logo_512.png",
+    "sizes": "32x32 48x48 64x64 72x72 96x96 192x192 256x256 512x512",
+    "type": "image/png"
+  }, {
+    "src": "logo.svg",
+    "sizes": "any",
+    "type": "image/svg"
+  }],
+  "related_applications": [{
+    "platform": "web"
+  }]
+}
