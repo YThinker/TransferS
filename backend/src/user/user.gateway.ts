@@ -1,10 +1,8 @@
 import { WebsocketServer, Subscribe, SocketInstance, Gateway, Inject } from "@@/factory/SocketDecorators";
 import { Server, Socket } from "socket.io";
-import { inject, injectable } from "inversify";
 import { UserService } from "./user.service";
 
 @Gateway({ namespace: '/user' })
-@injectable()
 export class UserGateway {
   @WebsocketServer server?: Server;
   @SocketInstance socket?: Socket;
