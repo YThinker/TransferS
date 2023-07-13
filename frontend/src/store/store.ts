@@ -4,7 +4,8 @@ import { StoreState } from "./type";
 const initialState: StoreState = {
   udid: null,
   localUdid: null,
-  loading: true,
+  io: null,
+  token: null,
 };
 
 export const store = createStore(initialState);

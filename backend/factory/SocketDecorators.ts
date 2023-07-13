@@ -1,47 +1,49 @@
-import { Socket, Namespace, Server, ServerOptions } from "socket.io";
+import { ServerOptions } from "socket.io";
+import { DecoratorMetadataName } from "./DecoratorMetadataName";
+import { ProviderContainer } from "./ProviderContainer";
+import { ModuleDecoratorParamters, NamespaceOptions, ClassConstructor, InjectInfo } from "./type";
 
-/** 注入Metadata的name */
-export enum DecoratorMetadataName {
-  ChildModules = '[[childmodules]]',
-  ServerOptions = '[[serveroptions]]',
-  NamespaceModule = '[[wsopt]]',
-  EventListener = '[[listener]]',
-  ServerProperty = '[[serverprop]]',
-  NamespaceProperty = '[[namespaceprop]]',
-  SocketProperty = '[[socketprop]]'
-}
-
-export interface ChildModuleClass {
-  socket?: Socket,
-  namespace?: Namespace,
-  server?: Server,
-  [key: string | number | symbol]: any
-}
 /** 定义server模块，该模块为主模块 */
-export function ServerModule(childModules?: ChildModuleClass[], serverOpt?: Partial<ServerOptions>): ClassDecorator {
+export function ServerModule(
+  serverOpt?: Partial<ServerOptions>,
+): ClassDecorator {
   return function (target: Function) {
-    Reflect.defineMetadata(DecoratorMetadataName.ChildModules, childModules, target);
+    Reflect.defineMetadata(DecoratorMetadataName.ServerModuleIdentify, true, target);
     Reflect.defineMetadata(DecoratorMetadataName.ServerOptions, serverOpt, target);
   }
 }
 
-/** 定义namespace模块 */
-export interface NamespaceOptions {
-  namespace?: string;
-}
-export function NamespaceModule(namespaceOpt?: NamespaceOptions): ClassDecorator {
+/** 定义为模块 */
+export function Module({
+  modules,
+  providers,
+  gateways,
+  imports,
+}: ModuleDecoratorParamters): ClassDecorator {
   return function (target: Function) {
-    Reflect.defineMetadata(DecoratorMetadataName.NamespaceModule, namespaceOpt,target);
+    Reflect.defineMetadata(DecoratorMetadataName.Container, new ProviderContainer(), target);
+    Reflect.defineMetadata(DecoratorMetadataName.Modules, modules, target);
+    Reflect.defineMetadata(DecoratorMetadataName.Providers, providers, target);
+    Reflect.defineMetadata(DecoratorMetadataName.Gateways, gateways, target);
+    Reflect.defineMetadata(DecoratorMetadataName.Imports, imports, target);
+  }
+}
+
+/** 定义gateway模块 */
+export function Gateway(namespaceOpt?: NamespaceOptions): ClassDecorator {
+  return function (target: Function) {
+    Reflect.defineMetadata(DecoratorMetadataName.GatewayIdentify, true, target);
+    Reflect.defineMetadata(DecoratorMetadataName.NamespaceOptions, namespaceOpt, target);
   }
 }
 
 /** 订阅消息装饰器 */
 export type ListenersMetadata = Array<{
   name: string,
-  listener: (...args: any[]) => void
+  listener: (...args: unknown[]) => void
 }>
 export function Subscribe(eventName?: string): MethodDecorator {
-  return function (target: any, _, descriptor) {
+  return function (target: object, _, descriptor) {
     const listeners = Reflect.getMetadata(DecoratorMetadataName.EventListener, target) ?? [];
     Reflect.defineMetadata(
       DecoratorMetadataName.EventListener,
@@ -55,13 +57,33 @@ export function Subscribe(eventName?: string): MethodDecorator {
 }
 
 export function WebsocketServer(target: object, propertyKey: string | symbol) {
-  Reflect.defineMetadata(DecoratorMetadataName.ServerProperty, true, target, propertyKey)
+  const keyMap = Reflect.getMetadata(DecoratorMetadataName.ServerProperty, target) || [];
+  Reflect.defineMetadata(DecoratorMetadataName.ServerProperty, keyMap.concat(propertyKey), target);
 }
 
 export function WebsocketNamespace(target: object, propertyKey: string | symbol) {
-  Reflect.defineMetadata(DecoratorMetadataName.NamespaceProperty, true, target, propertyKey)
+  const keyMap = Reflect.getMetadata(DecoratorMetadataName.NamespaceProperty, target) || [];
+  Reflect.defineMetadata(DecoratorMetadataName.NamespaceProperty, keyMap.concat(propertyKey), target);
 }
 
 export function SocketInstance(target: object, propertyKey: string | symbol) {
-  Reflect.defineMetadata(DecoratorMetadataName.SocketProperty, true, target, propertyKey)
+  const keyMap = Reflect.getMetadata(DecoratorMetadataName.SocketProperty, target) || [];
+  Reflect.defineMetadata(DecoratorMetadataName.SocketProperty, keyMap.concat(propertyKey), target);
+}
+
+export function Injectable (identify?: unknown) {
+  return function (target: ClassConstructor) {
+    Reflect.defineMetadata(DecoratorMetadataName.InjectableIdentify, identify ?? target, target);
+  }
+}
+
+export function Inject (identify: unknown) {
+  return function (target: object, propertyKey: string) {
+    const infos: InjectInfo[] = Reflect.getMetadata(DecoratorMetadataName.InjectInfos, target) ?? [];
+    infos.push({
+      identify,
+      propertyKey
+    });
+    Reflect.defineMetadata(DecoratorMetadataName.InjectInfos, infos, target);
+  }
 }

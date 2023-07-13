@@ -1,26 +1,23 @@
-import { Component, createSignal } from 'solid-js';
+import { Component, useContext } from 'solid-js';
 import Dialog from './components/Dialog';
 import Layout from './layout';
-import { StoreContext, store } from './store';
-import { Socket, io } from 'socket.io-client';
+import { io } from 'socket.io-client';
+import { store } from './store';
 
+/**
+ * 建立连接 -> 获取设备信息 -> 进行登录校验 -> 登录完成
+ */
 const App: Component = () => {
-  const [open, setOpen] = createSignal(true);
+  const [storeState, setStoreState] = store;
 
-  const handleDialogChange = (val: boolean) => {
-    setOpen(val)
-  };
-
-  const socket = io("ws://localhost:3000/user", {
-    transports: ["websocket"]
+  const socket = io("ws://localhost:3201/user", {
+    transports: ["websocket"],
   });
 
   return (
-    <StoreContext.Provider value={store}>
-      <Layout>
-        
-      </Layout>
-    </StoreContext.Provider>
+    <Layout>
+      
+    </Layout>
   );
 };
 

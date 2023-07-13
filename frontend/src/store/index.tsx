@@ -1,6 +1,7 @@
-import { FlowProps, onMount } from 'solid-js';
+import { FlowProps, createResource } from 'solid-js';
 import { StoreContext } from './context';
 import { store } from './store';
+import FingerprintJS from '@fingerprintjs/fingerprintjs';
 import { LOCAL_UUID_NAME } from '@/constants';
 
 export {
@@ -9,14 +10,12 @@ export {
 }
 
 const StoreProvider = (props: FlowProps) => {
-  const [storeState, setStoreState] = store;
 
-  onMount(() => {
-    let localUdid = localStorage.getItem(LOCAL_UUID_NAME);
-    if(!localUdid) {
-      localUdid = window.crypto.randomUUID();
-    }
-  })
+  createResource(async () => {
+    const fpInstance = await FingerprintJS.load();
+    const result = await fpInstance.get();
+    result.visitorId;
+  });
 
   return (
     <StoreContext.Provider value={store}>

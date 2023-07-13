@@ -1,0 +1,45 @@
+# yml文件
+version: '3.9'
+
+services:
+  # cli:
+  #   image: gplane/pnpm
+  #   working_dir: /workspace
+  #   command: pnpm fetch
+  #   restart: always
+  #   tty: true
+  # project:
+  #   build:
+  #     context: ./
+  #     dockerfile: ./Dockerfile
+  #   # restart: always
+  #   networks:
+  #     - transfers-network
+  #   volumes:
+  #     - ./:/workspace
+  #   ports:
+  #     - 3010:3010
+  #     - 3000:3000
+  project:
+    image: 'gplane/pnpm'
+    # restart: always
+    tty: true
+    working_dir: /workspace
+    networks:
+      - transfers-network
+    volumes:
+      - ./:/workspace
+    ports:
+      - 3010:3010
+      - 3201:3201
+    command: pnpm run start
+  # nodejs-dev:
+  #   image: 'lsage/pnpm-circleci-node:16.13.1-pnpm7.5.1'
+  #   volumes:
+  #     - ./project:/home/circleci/project
+  #   tty: true
+  #   entrypoint: bash
+  #   working_dir: /home/circleci/project
+networks:
+  transfers-network:
+    driver: bridge

@@ -1,3 +1,5 @@
+import { Socket } from "socket.io-client";
+
 export interface StoreState {
   /** @description UDID */
   udid: string | null,
@@ -10,7 +12,12 @@ export interface StoreState {
   localUdid: string | null,
   /**
    * @description
-   * 获取用户信息时调用
+   * 登录态
    */
-  loading: boolean;
+  token: string | null,
+  /**
+   * @description
+   * socket.io实例
+   */
+  io: Socket | null;
 }

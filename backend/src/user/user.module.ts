@@ -1,19 +1,9 @@
-import { WebsocketServer, Subscribe, NamespaceModule, SocketInstance } from "../../factory/SocketDecorators";
-import { Server, Socket } from "socket.io";
+import { Module } from "../../factory/SocketDecorators";
+import { UserGateway } from "./user.gateway";
+import { UserService } from "./user.service";
 
-@NamespaceModule({ namespace: '/user' })
-export class UserModule {
-  @WebsocketServer server?: Server;
-  @SocketInstance socket?: Socket;
-
-  constructor() {}
-
-  onConnection() {
-    console.log('user connection', this.socket?.id);
-  }
-
-  @Subscribe('token')
-  public handleToken(socket: Socket, data: any) {
-    console.log('token', data);
-  }
-}
+@Module({
+  gateways: [UserGateway],
+  providers: [UserService]
+})
+export class UserModule {}

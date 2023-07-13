@@ -1,8 +1,17 @@
-import { ServerModule } from "../factory/SocketDecorators";
+import { Module, ServerModule } from "../factory/SocketDecorators";
 import { UserModule } from "./user/user.module";
-import { ExchangeModule } from "./exchange/exchange.module";
+import { MysqlService } from "@@/library/Mysql/mysql.service";
 
-@ServerModule(
-  [UserModule, ExchangeModule]
-)
+MysqlService.setOptions({
+  host: 'localhost',
+  port: 3306,
+});
+
+@ServerModule()
+@Module({
+  modules: [
+    UserModule,
+  ],
+  providers: [MysqlService]
+})
 export class AppModule {}
