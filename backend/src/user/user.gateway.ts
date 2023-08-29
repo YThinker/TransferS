@@ -1,24 +1,22 @@
-import { WebsocketServer, Subscribe, SocketInstance, Gateway, Inject } from "@@/factory/SocketDecorators";
+import { WebsocketServer, Subscribe, Gateway, Inject, Put } from "@@/factory/SocketDecorators";
 import { Server, Socket } from "socket.io";
 import { UserService } from "./user.service";
+import { SignUpParams } from "./user.dto";
 
 @Gateway({ namespace: '/user' })
 export class UserGateway {
   @WebsocketServer server?: Server;
-  @SocketInstance socket?: Socket;
 
   @Inject(UserService)
-  userService?: UserService;
+  declare userService: UserService;
 
   constructor() {}
 
-  onConnection(_: Socket) {
-    console.log('userService', this.userService);
-    console.log('user connection', this.socket?.id);
-  }
-
-  @Subscribe('token')
-  public handleToken(socket: Socket, data: any) {
-    console.log('token', data);
+  @Put('sign_up')
+  public async signUp(socket: Socket, data: SignUpParams) {
+    const udid = await this.userService.signUp(data);
+    if(udid) {
+      return { udid };
+    }
   }
 }

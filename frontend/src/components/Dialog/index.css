@@ -1,7 +1,3 @@
-.dialog-body {
-  min-height: 100px;
-}
-
 .dialog-enter .dialog-backdrop {
   opacity: 0;
   transition: opacity 0.5s;

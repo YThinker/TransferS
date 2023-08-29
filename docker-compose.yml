@@ -2,44 +2,55 @@
 version: '3.9'
 
 services:
-  # cli:
-  #   image: gplane/pnpm
-  #   working_dir: /workspace
-  #   command: pnpm fetch
-  #   restart: always
-  #   tty: true
-  # project:
-  #   build:
-  #     context: ./
-  #     dockerfile: ./Dockerfile
-  #   # restart: always
-  #   networks:
-  #     - transfers-network
-  #   volumes:
-  #     - ./:/workspace
-  #   ports:
-  #     - 3010:3010
-  #     - 3000:3000
   project:
     image: 'gplane/pnpm'
-    # restart: always
+    restart: always
     tty: true
     working_dir: /workspace
     networks:
       - transfers-network
     volumes:
       - ./:/workspace
+    links:
+      - mysql:mysql
+      - redis:redis
+    depends_on:
+      - mysql
+      - redis
     ports:
       - 3010:3010
       - 3201:3201
-    command: pnpm run start
-  # nodejs-dev:
-  #   image: 'lsage/pnpm-circleci-node:16.13.1-pnpm7.5.1'
-  #   volumes:
-  #     - ./project:/home/circleci/project
-  #   tty: true
-  #   entrypoint: bash
-  #   working_dir: /home/circleci/project
+    command: pnpm -F backend run start
+  mysql:
+    image: mysql:latest
+    privileged: true
+    command:
+      --max_connections=1000
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_general_ci
+      --default-authentication-plugin=mysql_native_password
+    restart: always
+    ports:
+      - 3306:3306
+    expose:
+      - 3306
+    networks:
+      - transfers-network
+    environment:
+      MYSQL_ROOT_PASSWORD: 15e4c1ae_ac97_4481x8b38_a5eed67b1c0f
+      MYSQL_USER: ythinker
+      MYSQL_PASSWORD: b6DeacfE7bc1B
+      MYSQL_DATABASE: transfer_s
+  redis:
+    image: redis:6.2.13-alpine
+    restart: always
+    networks:
+      - transfers-network
+    command: ["redis-server", "--appendonly", "yes", "--requirepass", "DpqK9o4h78E59X", "--port", "3328"]
+    ports:
+      - 3328:3328
+    expose:
+      - 3328
 networks:
   transfers-network:
     driver: bridge

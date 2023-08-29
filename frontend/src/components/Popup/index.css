@@ -1,0 +1,39 @@
+.popup-enter .popup-backdrop {
+  opacity: 0;
+  transition: opacity 0.5s;
+}
+
+.popup-enter-to .popup-backdrop {
+  opacity: 1;
+}
+
+.popup-exit .popup-backdrop {
+  opacity: 1;
+  transition: opacity 0.5s;
+}
+
+.popup-exit-to .popup-backdrop {
+  opacity: 0;
+}
+
+.popup-enter .popup-body {
+  transform: translateY(100%);
+  backdrop-filter: blur(0);
+  transition: transform 0.5s, backdrop-filter 0.5s;
+}
+
+.popup-enter-to .popup-body {
+  transform: translateY(0);
+  backdrop-filter: blur(16px);
+}
+
+.popup-exit .popup-body {
+  transform: translateY(0);
+  backdrop-filter: blur(16px);
+  transition: transform 0.5s, backdrop-filter 0.5s;
+}
+
+.popup-exit-to .popup-body {
+  transform: translateY(100%);
+  backdrop-filter: blur(0);
+}

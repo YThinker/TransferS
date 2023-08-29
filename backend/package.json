@@ -15,15 +15,19 @@
   },
   "license": "ISC",
   "dependencies": {
+    "jsonwebtoken": "^9.0.1",
+    "module-alias": "^2.2.3",
     "mysql2": "^3.4.3",
     "reflect-metadata": "^0.1.13",
+    "sequelize": "^6.32.1",
     "socket.io": "^4.6.1",
-    "module-alias": "^2.2.3",
-    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.24.0"
+    "uWebSockets.js": "github:uNetworking/uWebSockets.js#v20.24.0",
+    "validator": "^13.11.0"
   },
   "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.2",
     "@types/nodemon": "^1.19.2",
-    "add": "^2.0.6",
+    "@types/validator": "^13.7.17",
     "nodemon": "^2.0.22",
     "ts-node": "^10.9.1"
   }

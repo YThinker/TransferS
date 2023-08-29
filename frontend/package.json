@@ -12,6 +12,7 @@
   },
   "license": "ISC",
   "devDependencies": {
+    "vite": "^4.1.1",
     "@tailwindcss/typography": "^0.5.9",
     "autoprefixer": "^10.4.13",
     "postcss": "^8.4.21",

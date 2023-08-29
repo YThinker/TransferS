@@ -1,4 +1,4 @@
-import { For, JSXElement, Show, createEffect, createSignal, on } from "solid-js";
+import { For, JSX, JSXElement, Show, createEffect, createSignal, on } from "solid-js";
 import { Portal } from "solid-js/web";
 import ApperanceTransition from "@/baseComponents/ApperanceTransition";
 
@@ -15,6 +15,8 @@ export type DialogCloseTriggerBy = 'escape' | 'backdrop' | 'default';
 interface Props {
   title: JSXElement;
   message?: JSXElement;
+  class?: string;
+  style?: JSX.CSSProperties;
   open?: boolean;
   onClose?: (open: boolean, triggerBy?: DialogCloseTriggerBy) => void;
   operations?: DialogButtonGroupItem[];
@@ -61,14 +63,17 @@ const Dialog = (props: Props) => {
     )
   );
 
-  {/** {insetOpen} is used to unmount <Portal> when <Dialog> has been closed */}
+  /** {insetOpen} is used to unmount <Portal> when <Dialog> has been closed */
   return (
     <Show when={insetOpen()}>
       <Portal>
         <ApperanceTransition in={props.open} duration={500} name="dialog" unmountOnExit onExited={handleOnExited}>
           <div onKeyDown={handleKeyDown} ref={dialogRef} class="fixed z-50 inset-0 flex justify-center items-center outline-none" tabIndex={-1}>
             <div onClick={handleBackdropClick} class="absolute inset-0 bg-black bg-opacity-10 dialog-backdrop"/>
-            <div class="flex flex-col w-64 prose text-center bg-white bg-opacity-90 backdrop-blur-lg rounded-2xl dialog-body">
+            <div
+              class={`flex flex-col w-64 min-h-[100px] prose text-center bg-white bg-opacity-90 backdrop-blur-lg rounded-2xl dialog-body ${props.class}`}
+              style={props.style}
+            >
               <div class="flex flex-col flex-1 gap-0.5 p-4 pb-3">
                 <h5 class="text-base font-medium">{props.title}</h5>
                 <p class="m-0 text-xs font-normal">{props.message}</p>
@@ -82,14 +87,14 @@ const Dialog = (props: Props) => {
               >
                 <For
                   each={props.operations}
-                  fallback={<button onClick={handleDefaultClick} type="button" class="w-full py-1 px-2 truncate hover:bg-neutral-500 hover:bg-opacity-5 active:bg-black active:bg-opacity-5 text-blue-500">确定</button>}
+                  fallback={<button onClick={handleDefaultClick} type="button" class="w-full py-1 px-2 truncate hover:bg-neutral-500 hover:bg-opacity-5 active:bg-black active:bg-opacity-5 text-indigo-500">确定</button>}
                 >
                   {item => (
                     <button
                       type="button"
                       class="w-full py-1 px-2 truncate hover:bg-neutral-500 hover:bg-opacity-5 active:bg-black active:bg-opacity-5"
                       classList={{
-                        "text-blue-500": item.type === 'primary',
+                        "text-indigo-500": item.type === 'primary',
                         "text-red-500": item.type === 'danger',
                         "text-gray-400": item.type === 'secondary'
                       }}

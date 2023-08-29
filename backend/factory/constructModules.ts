@@ -1,10 +1,13 @@
 import "reflect-metadata";
 import { Namespace, Server, ServerOptions, Socket } from "socket.io";
-import { ListenersMetadata } from "./SocketDecorators";
+import { FiltersMap, GuardsMap, ListenersMetadata } from "./type";
 import { TemplatedApp } from "uWebSockets.js";
 import { DecoratorMetadataName } from "./DecoratorMetadataName";
 import { ProviderContainer } from "./ProviderContainer";
-import { ClassConstructor, GatewayConstructor, GatewayInstance, InjectInfo, NamespaceOptions } from "./type";
+import { ClassConstructor, GatewayConstructor, GatewayInstance, IdentifyInfo, InjectInfo, NamespaceOptions } from "./type";
+import { findLinkedModules, findMatchedContainer, findMatchedContainers } from "./utils";
+import { Response, ResponseError } from "./Response";
+import { BaseGuard } from "./BaseGuard";
 
 function createGlobalServer (app: TemplatedApp, serverOpt?: Partial<ServerOptions>) {
   const io = new Server(serverOpt);
@@ -12,54 +15,112 @@ function createGlobalServer (app: TemplatedApp, serverOpt?: Partial<ServerOption
   return io;
 }
 
-function bindInjectProperty (identify: unknown, target: object, propertyKey: string | symbol) {
+function bindInjectProperty (
+  identify: InjectInfo['identify'],
+  target: object,
+  propertyKey: InjectInfo['propertyKey'],
+  cb?: InjectInfo['cb']
+) {
   const belongModules: ClassConstructor[] | undefined = Reflect.getMetadata(DecoratorMetadataName.BelongModules, target);
   if (!belongModules || !belongModules.length) {
     throw new Error(`${target.constructor} unbind with module`);
   }
 
-  const containers: Set<ProviderContainer> = new Set();
-  const extendedContainers: Set<ProviderContainer> = new Set();
-  const serverModuleContainers: Set<ProviderContainer> = new Set();
-  const extendedGlobalContainers: Set<ProviderContainer> = new Set();
-  belongModules.forEach(module => {
-    containers.add(Reflect.getMetadata(DecoratorMetadataName.Container, module));
-
-    const imports: ClassConstructor[] | undefined = Reflect.getMetadata(DecoratorMetadataName.Imports, module);
-    imports?.forEach(importModule => {
-      extendedContainers.add(Reflect.getMetadata(DecoratorMetadataName.Container, importModule));
-    });
-
-    const serverModules: ClassConstructor[] | undefined = Reflect.getMetadata(DecoratorMetadataName.BelongServerModules, module);
-    serverModules?.forEach(serverModule => {
-      serverModuleContainers.add(Reflect.getMetadata(DecoratorMetadataName.Container, serverModule));
-      const serverModuleImports: ClassConstructor[] | undefined = Reflect.getMetadata(DecoratorMetadataName.Imports, module);
-      serverModuleImports?.forEach(importModule => {
-        extendedGlobalContainers.add(Reflect.getMetadata(DecoratorMetadataName.Container, importModule));
-      });
-    });
-  });
-
-  const matchedContainer = [
-    ...containers,
-    ...extendedContainers,
-    ...serverModuleContainers,
-    ...extendedGlobalContainers
-  ].find(container => {
-    return container.isBound(identify);
-  })
+  const linkedModules = findLinkedModules(belongModules);
+  const matchedContainers = findMatchedContainers(linkedModules);
+  const matchedContainer = findMatchedContainer(matchedContainers, identify);
 
   if (!matchedContainer) {
     throw new Error(`${identify} has not been injected`);
   }
-  Reflect.set(target, propertyKey, matchedContainer.get(identify));
+  const injectedValue = matchedContainer.get(identify);
+  Reflect.set(target, propertyKey, injectedValue);
+  if(cb) {
+    cb(injectedValue);
+  }
 }
 
-function bindDecoratorListeners (self: GatewayInstance, socket: Socket) {
-  /** mount listener */
-  const listeners: ListenersMetadata | undefined = Reflect.getMetadata(DecoratorMetadataName.EventListener, self);
-  listeners?.forEach(listener => {
-    socket.on(listener.name, (...args: any) => listener.listener.call(self, socket, ...args))
+/**
+ * mount listener
+ * bind error filters
+ * bind guards
+ * bind pipes
+ * bind interceptors
+ */
+function bindDecoratorListeners (target: GatewayInstance, socket: Socket) {
+  const listeners: ListenersMetadata | undefined = Reflect.getMetadata(DecoratorMetadataName.EventListener, target);
+  const filters: FiltersMap = Reflect.getMetadata(DecoratorMetadataName.ExceptionFilter, target);
+  const guards: GuardsMap = Reflect.getMetadata(DecoratorMetadataName.Guard, target);
+  if(!listeners?.length) {
+    return;
+  }
+
+  const belongModules: ClassConstructor[] | undefined = Reflect.getMetadata(DecoratorMetadataName.BelongModules, target);
+  if (!belongModules || !belongModules.length) {
+    throw new Error(`${target.constructor} unbind with module`);
+  }
+
+  const linkedModules = findLinkedModules(belongModules);
+  /** 弱化层级，仅 */
+  const useFilterModules = belongModules.concat(linkedModules.serverModules);
+  const matchedContainers = findMatchedContainers(linkedModules);
+
+  const gatewayExceptionFilter = filters.get(DecoratorMetadataName.ExceptionFilter);
+  const gatewayGuardsMapChildren = guards.get(DecoratorMetadataName.Guard);
+
+  listeners.forEach(listener => {
+    const guardsMapChildren = guards.get(listener.propertyKey);
+    const exceptionFilter = filters.get(listener.propertyKey);
+    const totalGuardsMapChildren = (guardsMapChildren ?? []).concat(gatewayGuardsMapChildren ?? []);
+
+    socket.on(listener.name, async (...args: unknown[]) => {
+      try {
+        const successName = `${listener.name}:success`;
+
+        if(totalGuardsMapChildren) {
+          for (let guardMapChild of totalGuardsMapChildren) {
+            const { guard, extra } = guardMapChild;
+            const guardMatchedContainer = findMatchedContainer(matchedContainers, guard);
+            const injectedGuard = guardMatchedContainer?.get<BaseGuard>(guard);
+            const passResult = await injectedGuard?.pass(socket, ...args, ...extra);
+            if(passResult === false) {
+              throw new ResponseError(403, `${guard} Guard Forbidden`);
+            }
+          }
+        }
+
+        const result: unknown = await listener.listener.call(target, socket, ...args);
+        if (result instanceof Response) {
+          socket.emit(successName, result);
+          return;
+        }
+        socket.emit(successName, new Response({ data: result }));
+      } catch (e) {
+        const failName = `${listener.name}:fail`;
+        let errorResponse = e;
+        if (exceptionFilter) {
+          errorResponse = await exceptionFilter.catch(e);
+        } else if (gatewayExceptionFilter) {
+          errorResponse = await gatewayExceptionFilter.catch(e);
+        } else {
+          for (let Module of useFilterModules) {
+            if('catch' in Module && typeof Module.catch === 'function') {
+              errorResponse = await Module.catch(e);
+              break;
+            }
+          }
+        }
+        if (errorResponse instanceof ResponseError) {
+          socket.emit(failName, e);
+          return;
+        }
+        if (e instanceof Object && 'message' in e && typeof e.message === 'string') {
+          socket.emit(failName, new ResponseError(1, e.message));
+          return;
+        }
+        socket.emit(failName, new ResponseError(0, 'Internal server error'));
+      }
+    })
   });
 }
 
@@ -76,17 +137,6 @@ function bindDecoratorValuesBeforeConnect (
   });
   serverPropertyKeys?.forEach(key => {
     Reflect.set(self, key, ioInstance);
-  });
-}
-
-/** bind socket */
-function bindDecoratorValuesAfterConnect (
-  self: GatewayInstance,
-  socket: Socket
-) {
-  const socketPropertyKeys: string[] | undefined = Reflect.getMetadata(DecoratorMetadataName.SocketProperty, self);
-  socketPropertyKeys?.forEach(key => {
-    Reflect.set(self, key, socket);
   });
 }
 
@@ -123,14 +173,13 @@ function constructGateways (
     Reflect.defineMetadata(DecoratorMetadataName.BelongModules, belongModules, instance);
 
     const injectInfos: InjectInfo[] | undefined = Reflect.getMetadata(DecoratorMetadataName.InjectInfos, instance);
-    injectInfos?.forEach(info => bindInjectProperty(info.identify, instance, info.propertyKey));
+    injectInfos?.forEach(info => bindInjectProperty(info.identify, instance, info.propertyKey, info?.cb));
 
     const opt: NamespaceOptions = Reflect.getMetadata(DecoratorMetadataName.NamespaceOptions, Gateway);
     const { namespace } = opt ?? {};
     const nsp = io?.of(namespace ?? '/');
     bindDecoratorValuesBeforeConnect(instance, nsp, io);
     nsp.on('connection', (socket) => {
-      bindDecoratorValuesAfterConnect(instance, socket);
       bindDecoratorListeners(instance, socket);
       instance.onConnection?.(socket);
       socket.on('disconnect', (...args) => {
@@ -152,20 +201,21 @@ function constructProviders (
   belongModule: (new () => object),
 ) {
   providers.forEach(Provider => {
-    const identify = Reflect.getMetadata(DecoratorMetadataName.InjectableIdentify, Provider);
-    if(identify === undefined || identify === null) {
+    const identifyInfo: IdentifyInfo = Reflect.getMetadata(DecoratorMetadataName.InjectableIdentify, Provider);
+    if(identifyInfo === undefined || identifyInfo === null) {
       throw new Error(`${Provider} is not injectable class`);
     }
 
     const instance = new Provider();
+    const factoryInstance = identifyInfo.factory?.();
     const belongModules = Reflect.getMetadata(DecoratorMetadataName.BelongModules, instance) ?? [];
     belongModules.push(belongModule);
     Reflect.defineMetadata(DecoratorMetadataName.BelongModules, belongModules, instance);
 
-    if(container.isBound(identify)) {
+    if(container.isBound(identifyInfo.identify)) {
       return;
     }
-    container.bindInstance(identify, instance);
+    container.bindInstance(identifyInfo.identify, factoryInstance ?? instance);
 
     const injectInfos: InjectInfo[] | undefined = Reflect.getMetadata(DecoratorMetadataName.InjectInfos, instance);
     injectInfos?.forEach(info => batchInjectInfos.push({
@@ -181,7 +231,6 @@ function constructProviders (
  */
 function constructChildModules (
   modules: ClassConstructor[],
-  io: Server,
   serverModule: ClassConstructor | null,
 ) {
   modules.forEach(ChildModule => {
@@ -189,6 +238,8 @@ function constructChildModules (
     if(!container) {
       throw new Error(`${ChildModule} is not a module`);
     }
+    /** constructe module */
+    new ChildModule();
 
     const isServerModule = Reflect.getMetadata(DecoratorMetadataName.ServerModuleIdentify, ChildModule);
     if(!isServerModule) {
@@ -213,8 +264,8 @@ function constructChildModules (
         ChildModule
       });
     }
-    if(Array.isArray(childModules) && childModules.length) {
-      constructChildModules(childModules, io, isServerModule ? ChildModule : serverModule);
+    if(isServerModule && Array.isArray(childModules) && childModules.length) {
+      constructChildModules(childModules, isServerModule ? ChildModule : serverModule);
     }
   });
 }
@@ -234,15 +285,16 @@ export function constructServerModules (
   modules.forEach(ModuleItem => {
     const isServerModule = Reflect.getMetadata(DecoratorMetadataName.ServerModuleIdentify, ModuleItem);
     if(!isServerModule) {
-      return;
+      throw new Error(`${ModuleItem} is not server module`);
     }
+
     const serverOpts = Reflect.getMetadata(DecoratorMetadataName.ServerOptions, ModuleItem);
     const io = createGlobalServer(app, {
       ...globalServerOpt,
       ...serverOpts
     });
 
-    constructChildModules([ModuleItem], io, null);
+    constructChildModules([ModuleItem], null);
     batchProviders.forEach(batch => constructProviders(batch.providers, batch.container, batch.ChildModule));
     batchInjectInfos.forEach(batch => bindInjectProperty(batch.identify, batch.instance, batch.propertyKey));
     batchGateways.forEach(batch => constructGateways(batch.gateways, io, batch.ChildModule));

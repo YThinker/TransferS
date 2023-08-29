@@ -4,3 +4,4 @@
 .vscode
 **/pnpm-lock.yaml
 **/.pnpm-debug.log
+.pnpm-store

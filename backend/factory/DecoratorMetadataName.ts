@@ -12,10 +12,11 @@ export const DecoratorMetadataName = {
   EventListener: Symbol('listener'),
   ServerProperty: Symbol('serverprop'),
   NamespaceProperty: Symbol('namespaceprop'),
-  SocketProperty: Symbol('socketprop'),
   InjectableIdentify: Symbol('canbeinjected'),
   InjectInfos: Symbol('injectinfos'),
   BelongModules: Symbol('belongmodules'),
   BelongServerModules: Symbol('belongservermodules'),
   Imports: Symbol('importmodules'),
+  ExceptionFilter: Symbol('exceptionfilter'),
+  Guard: Symbol('guard'),
 }
