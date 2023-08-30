@@ -5,7 +5,7 @@ import { TemplatedApp } from "uWebSockets.js";
 import { DecoratorMetadataName } from "./DecoratorMetadataName";
 import { ProviderContainer } from "./ProviderContainer";
 import { ClassConstructor, GatewayConstructor, GatewayInstance, IdentifyInfo, InjectInfo, NamespaceOptions } from "./type";
-import { findLinkedModules, findMatchedContainer, findMatchedContainers } from "./utils";
+import { bindBelongModules, findLinkedModules, findMatchedContainer, findMatchedContainers, useExceptionFilters, useGuards } from "./utils";
 import { Response, ResponseError } from "./Response";
 import { BaseGuard } from "./BaseGuard";
 
@@ -49,11 +49,12 @@ function bindInjectProperty (
  */
 function bindDecoratorListeners (target: GatewayInstance, socket: Socket) {
   const listeners: ListenersMetadata | undefined = Reflect.getMetadata(DecoratorMetadataName.EventListener, target);
-  const filters: FiltersMap = Reflect.getMetadata(DecoratorMetadataName.ExceptionFilter, target);
-  const guards: GuardsMap = Reflect.getMetadata(DecoratorMetadataName.Guard, target);
   if(!listeners?.length) {
     return;
   }
+
+  const filterMap: FiltersMap = Reflect.getMetadata(DecoratorMetadataName.Catch, target);
+  const guardMap: GuardsMap = Reflect.getMetadata(DecoratorMetadataName.Guard, target);
 
   const belongModules: ClassConstructor[] | undefined = Reflect.getMetadata(DecoratorMetadataName.BelongModules, target);
   if (!belongModules || !belongModules.length) {
@@ -61,33 +62,31 @@ function bindDecoratorListeners (target: GatewayInstance, socket: Socket) {
   }
 
   const linkedModules = findLinkedModules(belongModules);
-  /** 弱化层级，仅 */
-  const useFilterModules = belongModules.concat(linkedModules.serverModules);
+  /** 守卫、过滤、拦截、管道 不支持类mixin行为 只支持显式声明，因此过滤掉importsModule */
+  const useSimplifiedModules = belongModules.concat(linkedModules.serverModules);
   const matchedContainers = findMatchedContainers(linkedModules);
 
-  const gatewayExceptionFilter = filters.get(DecoratorMetadataName.ExceptionFilter);
-  const gatewayGuardsMapChildren = guards.get(DecoratorMetadataName.Guard);
+  const gatewayExceptionFilters = filterMap.get(DecoratorMetadataName.Catch);
+  const gatewayGuardsMapChildren = guardMap.get(DecoratorMetadataName.Guard);
 
   listeners.forEach(listener => {
-    const guardsMapChildren = guards.get(listener.propertyKey);
-    const exceptionFilter = filters.get(listener.propertyKey);
+    const guardsMapChildren = guardMap.get(listener.propertyKey);
+    const exceptionFilters = filterMap.get(listener.propertyKey);
     const totalGuardsMapChildren = (guardsMapChildren ?? []).concat(gatewayGuardsMapChildren ?? []);
+    const totalExceptionFilters = (exceptionFilters ?? []).concat(gatewayExceptionFilters ?? []);
 
     socket.on(listener.name, async (...args: unknown[]) => {
       try {
         const successName = `${listener.name}:success`;
 
-        if(totalGuardsMapChildren) {
-          for (let guardMapChild of totalGuardsMapChildren) {
-            const { guard, extra } = guardMapChild;
-            const guardMatchedContainer = findMatchedContainer(matchedContainers, guard);
-            const injectedGuard = guardMatchedContainer?.get<BaseGuard>(guard);
-            const passResult = await injectedGuard?.pass(socket, ...args, ...extra);
-            if(passResult === false) {
-              throw new ResponseError(403, `${guard} Guard Forbidden`);
-            }
-          }
-        }
+        await useGuards(
+          totalGuardsMapChildren,
+          matchedContainers,
+          useSimplifiedModules,
+          socket,
+          listener.name,
+          args
+        );
 
         const result: unknown = await listener.listener.call(target, socket, ...args);
         if (result instanceof Response) {
@@ -97,19 +96,7 @@ function bindDecoratorListeners (target: GatewayInstance, socket: Socket) {
         socket.emit(successName, new Response({ data: result }));
       } catch (e) {
         const failName = `${listener.name}:fail`;
-        let errorResponse = e;
-        if (exceptionFilter) {
-          errorResponse = await exceptionFilter.catch(e);
-        } else if (gatewayExceptionFilter) {
-          errorResponse = await gatewayExceptionFilter.catch(e);
-        } else {
-          for (let Module of useFilterModules) {
-            if('catch' in Module && typeof Module.catch === 'function') {
-              errorResponse = await Module.catch(e);
-              break;
-            }
-          }
-        }
+        const errorResponse = await useExceptionFilters(e, totalExceptionFilters, useSimplifiedModules, listener.name);
         if (errorResponse instanceof ResponseError) {
           socket.emit(failName, e);
           return;
@@ -168,9 +155,7 @@ function constructGateways (
     }
     const instance = new Gateway();
 
-    const belongModules = Reflect.getMetadata(DecoratorMetadataName.BelongModules, instance) ?? [];
-    belongModules.push(belongModule);
-    Reflect.defineMetadata(DecoratorMetadataName.BelongModules, belongModules, instance);
+    bindBelongModules(instance, belongModule);
 
     const injectInfos: InjectInfo[] | undefined = Reflect.getMetadata(DecoratorMetadataName.InjectInfos, instance);
     injectInfos?.forEach(info => bindInjectProperty(info.identify, instance, info.propertyKey, info?.cb));
@@ -208,9 +193,7 @@ function constructProviders (
 
     const instance = new Provider();
     const factoryInstance = identifyInfo.factory?.();
-    const belongModules = Reflect.getMetadata(DecoratorMetadataName.BelongModules, instance) ?? [];
-    belongModules.push(belongModule);
-    Reflect.defineMetadata(DecoratorMetadataName.BelongModules, belongModules, instance);
+    bindBelongModules(instance, belongModule);
 
     if(container.isBound(identifyInfo.identify)) {
       return;

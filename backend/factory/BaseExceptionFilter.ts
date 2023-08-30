@@ -1,5 +1,5 @@
 import { ResponseError } from "./Response";
 
 export abstract class BaseExceptionFilter {
-  abstract catch (e: unknown): Promise<ResponseError> | ResponseError
+  abstract catch (e: unknown, listenerName: string): Promise<ResponseError> | ResponseError
 }

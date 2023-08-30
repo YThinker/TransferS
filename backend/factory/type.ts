@@ -58,4 +58,4 @@ export type FindMatchedContainersParameters = Record<'modules' | 'extendModules'
 export type GuardsMapChild = { guard: BaseGuard, extra: unknown[] }
 export type GuardsMap = Map<string | symbol, Array<GuardsMapChild>>;
 
-export type FiltersMap = Map<string | symbol, BaseExceptionFilter>;
+export type FiltersMap = Map<string | symbol, BaseExceptionFilter[]>;

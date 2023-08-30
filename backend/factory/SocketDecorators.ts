@@ -28,6 +28,7 @@ export function Module(moduleInfos?: ModuleDecoratorParamters): ClassDecorator {
     Reflect.defineMetadata(DecoratorMetadataName.Providers, providers, target);
     Reflect.defineMetadata(DecoratorMetadataName.Gateways, gateways, target);
     Reflect.defineMetadata(DecoratorMetadataName.Imports, imports, target);
+    Reflect.defineMetadata(DecoratorMetadataName.Modules, imports, target);
   }
 }
 
@@ -75,20 +76,30 @@ export function Delete(eventName?: string): MethodDecorator {
   return Subscribe(`delete:${eventName}`);
 }
 
+const mergeCatchList = (arr: BaseExceptionFilter[] | undefined, item: BaseExceptionFilter) =>
+  Array.isArray(arr) ? arr.concat(item) : [item];
 /** 错误捕获装饰器 */
 export function Catch(filter: BaseExceptionFilter): MethodDecorator | ClassDecorator {
   return function (target: object, propertyKey?: string | symbol) {
-    const map: FiltersMap = Reflect.getMetadata(DecoratorMetadataName.ExceptionFilter, target);
+    const map: FiltersMap = Reflect.getMetadata(DecoratorMetadataName.Catch, target);
     if(propertyKey) {
-      map.set(propertyKey, filter);
+      const list = map.get(propertyKey);
+      map.set(propertyKey, mergeCatchList(list, filter));
     } else {
-      map.set(DecoratorMetadataName.ExceptionFilter, filter);
+      const list = map.get(DecoratorMetadataName.Catch);
+      map.set(DecoratorMetadataName.Catch, mergeCatchList(list, filter));
     }
     Reflect.defineMetadata(
-      DecoratorMetadataName.ExceptionFilter,
+      DecoratorMetadataName.Catch,
       map,
       target
     );
+  }
+}
+
+export function Exception(type: Function): ClassDecorator {
+  return function (target: Function) {
+    Reflect.defineMetadata(DecoratorMetadataName.Exception, type, target);
   }
 }
 
@@ -107,7 +118,7 @@ export function Guard(guard: BaseGuard, ...args: unknown[]): MethodDecorator | C
       map.set(propertyKey, mergeGuardConfig(functionGuards, guardConfig));
     } else {
       const gatewayGuards = map.get(DecoratorMetadataName.Guard);
-      map.set(DecoratorMetadataName.ExceptionFilter, mergeGuardConfig(gatewayGuards, guardConfig));
+      map.set(DecoratorMetadataName.Catch, mergeGuardConfig(gatewayGuards, guardConfig));
     }
     Reflect.defineMetadata(
       DecoratorMetadataName.Guard,

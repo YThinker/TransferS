@@ -17,6 +17,7 @@ export const DecoratorMetadataName = {
   BelongModules: Symbol('belongmodules'),
   BelongServerModules: Symbol('belongservermodules'),
   Imports: Symbol('importmodules'),
-  ExceptionFilter: Symbol('exceptionfilter'),
+  Catch: Symbol('catch'),
   Guard: Symbol('guard'),
+  Exception: Symbol('exception'),
 }
