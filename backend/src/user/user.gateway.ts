@@ -1,7 +1,7 @@
-import { WebsocketServer, Subscribe, Gateway, Inject, Put } from "@@/factory/SocketDecorators";
+import { WebsocketServer, Subscribe, Gateway, Inject, Put, Post } from "@@/factory/SocketDecorators";
 import { Server, Socket } from "socket.io";
 import { UserService } from "./user.service";
-import { SignUpParams } from "./user.dto";
+import { SignInParams, SignUpParams } from "./user.dto";
 
 @Gateway({ namespace: '/user' })
 export class UserGateway {
@@ -13,10 +13,19 @@ export class UserGateway {
   constructor() {}
 
   @Put('sign_up')
-  public async signUp(socket: Socket, data: SignUpParams) {
+  public async signUp(_: Socket, data: SignUpParams) {
     const udid = await this.userService.signUp(data);
     if(udid) {
       return { udid };
+    }
+  }
+
+  @Post('sign_in')
+  public async signIn(socket: Socket, data: SignInParams) {
+    console.log(socket.handshake)
+    const res = await this.userService.signIn(data);
+    if(res.token) {
+      return res;
     }
   }
 }

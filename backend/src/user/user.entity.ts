@@ -1,12 +1,13 @@
 import { Entity } from "@@/library/Mysql/mysql.service";
-import { DataTypes, Model, Sequelize } from "sequelize";
+import { CreationOptional, DataTypes, Sequelize } from "sequelize";
 
-export class User extends Entity {
-  declare id: number;
+export class User extends Entity<User> {
+  declare id: CreationOptional<number>;
+  declare udid: string;
   declare fingerprint: string;
-  declare nickName: string;
-  declare descriptions: string;
-  declare lastOnlineTime: Date;
+  declare deviceName: string;
+  declare deviceDescription: string;
+  declare lastOnlineTime: Date | null;
 
   static useInject = (sequelize: Sequelize) => User.init({
     id: {
@@ -28,19 +29,21 @@ export class User extends Entity {
     },
     deviceName: {
       type: DataTypes.STRING,
+      field: 'device_name',
       allowNull: false,
     },
     deviceDescription: {
       type: DataTypes.STRING,
+      field: 'device_description',
       allowNull: true,
     },
     lastOnlineTime: {
-      type: DataTypes.TIME,
+      type: DataTypes.DATE,
       field: 'last_online_time',
-      allowNull: false,
+      allowNull: true,
     }
   }, {
     sequelize,
-    indexes: [{ fields: ['last_online_time'] }, { unique: true, fields: ['id', 'udid'] }]
-  });
+    indexes: [{ unique: true, fields: ['id', 'udid'] }]
+  }).sync({ alter: true });
 }

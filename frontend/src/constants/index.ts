@@ -2,7 +2,6 @@ export const LOCAL_UUID_NAME = '_udid';
 
 export enum INIT_STATUS_ENUM {
   INIT,
-  SOCKET,
   /** SOCKET_ERROR retry */
   SOCKET_ERROR,
   FINGER_PRINT,
@@ -13,3 +12,7 @@ export enum INIT_STATUS_ENUM {
   SIGN_IN,
   WELCOME,
 };
+
+export const SOCKET_TARGET = 'ws://localhost:3201/user';
+
+export const BROKEN_TIMEOUT = 5 * 60 * 1000;

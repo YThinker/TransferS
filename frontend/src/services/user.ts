@@ -1,4 +1,4 @@
-import { SignInParams, SignUpParams } from "./user.type";
+import { SignInDTO, SignInParams, SignUpParams } from "./user.type";
 import { request } from ".";
 import { REQUEST_METHOD } from "./public.type";
 
@@ -10,7 +10,7 @@ export const signUp = (params: SignUpParams) => {
 }
 
 export const signIn = (params: SignInParams) => {
-  return request<{token: string}>(params, {
+  return request<SignInDTO>(params, {
     key: 'sign_in',
     method: REQUEST_METHOD.POST
   })

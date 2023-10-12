@@ -1,16 +1,14 @@
 import Input from "@/components/Input";
 import Popup from "@/components/Popup";
-import { INIT_STATUS_ENUM } from "@/constants";
 import { signUp } from "@/services/user";
 import { store } from "@/store";
-import { JSX, createEffect, createSignal, onCleanup } from "solid-js";
+import { JSX, createEffect, createSignal, on, onCleanup } from "solid-js";
 
 interface Props {
   open: boolean;
   onSuccess: (udid: string) => void;
 }
 export default (props: Props) => {
-  const { open, onSuccess } = props;
   const [storeState] = store;
   const [signInOpen, setSignInOpen] = createSignal(false);
   const [submitParams, setSubmitParams] = createSignal({
@@ -19,9 +17,8 @@ export default (props: Props) => {
   });
 
   let timer: number | null = null;
-
   createEffect(() => {
-    if(open) {
+    if(props.open) {
       timer = window.setTimeout(() => setSignInOpen(true), 400);
     }
   });
@@ -40,7 +37,7 @@ export default (props: Props) => {
       fingerprint: storeState.fingerprint
     });
     if(res?.success) {
-      onSuccess(res.data.udid);
+      props.onSuccess(res.data.udid);
     }
   }
 

@@ -21,7 +21,8 @@ export class UserService {
     try {
       return await MysqlService.repository.transaction(async t => {
         const { id, fingerprint } = await User.create({
-          ...data
+          ...data,
+          udid: '',
         }, {
           transaction: t
         });
@@ -39,6 +40,7 @@ export class UserService {
         return udid
       });
     } catch(err) {
+      console.log(err);
       throw new ResponseError(1000, 'Registration failed. Please contact the administrator.')
     }
   }
@@ -53,9 +55,19 @@ export class UserService {
     }
 
     try {
+      const lastOnlineTime = new Date();
+      await User.update({
+        lastOnlineTime,
+      }, {
+        where: { id: user.id }
+      });
       const token = await this.jwtService.sign({ id: user.id });
-      return token;
+      return {
+        token,
+        userInfo: { ...user.dataValues, lastOnlineTime },
+      };
     } catch(e) {
+      console.log(e);
       throw new ResponseError(1002, 'Fail to sign jwt');
     }
   }

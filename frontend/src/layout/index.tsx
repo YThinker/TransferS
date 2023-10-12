@@ -10,8 +10,10 @@ export default (props: ParentProps) => {
 
   const operations = [{
     icon: MessageIcon,
+    title: '提醒',
   }, {
     icon: DeviceIcon,
+    title: '在线设备'
   }];
 
   return (
@@ -20,12 +22,12 @@ export default (props: ParentProps) => {
       fallback={<PageLoading />}
     >
       <header class="flex max-w-none p-3 prose bg-white bg-opacity-95 backdrop:blur-lg items-center">
-        <h5 class="flex-1 text-sm">阿洗洗的Macbook Pro</h5>
-        <div class="flex gap-2 h-8">
+        <h5 class="flex-1 text-sm">{storeState.userInfo?.deviceName}</h5>
+        <div class="flex gap-2 h-6">
           <Index each={operations}>
             {item => (
               <button
-                class="h-7 p-0.5 rounded-md active:shadow-inner transition-all bg-gray-400 hover:bg-indigo-500"
+                class="h-6 p-0.5 rounded-md active:shadow-inner transition-all bg-gray-400 active:bg-blue-500 hover:bg-blue-400"
               >
                 <img class="h-full w-auto m-0 p-0" src={item().icon} />
               </button>

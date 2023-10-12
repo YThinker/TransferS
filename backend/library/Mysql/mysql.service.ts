@@ -1,14 +1,17 @@
-import { Model, Options, Sequelize } from "sequelize";
+import { InferAttributes, InferCreationAttributes, Model, Options, Sequelize } from "sequelize";
 
 /** 定义实体 */
-export class Entity extends Model {
+export class Entity<T extends Model> extends Model<
+  InferAttributes<T>,
+  InferCreationAttributes<T>
+> {
   /** 实体注入数据库 */
   static useInject: (sequelize: Sequelize) => void;
 }
 
 export class MysqlService {
   static repository: Sequelize;
-  static setOptions (entities: typeof Entity[], options?: Options) {
+  static setOptions (entities: (typeof Entity<any>)[], options?: Options) {
     if (!MysqlService.repository) {
       MysqlService.repository = new Sequelize(options);
     }

@@ -66,12 +66,12 @@ function bindDecoratorListeners (target: GatewayInstance, socket: Socket) {
   const useSimplifiedModules = belongModules.concat(linkedModules.serverModules);
   const matchedContainers = findMatchedContainers(linkedModules);
 
-  const gatewayExceptionFilters = filterMap.get(DecoratorMetadataName.Catch);
-  const gatewayGuardsMapChildren = guardMap.get(DecoratorMetadataName.Guard);
+  const gatewayExceptionFilters = filterMap?.get(DecoratorMetadataName.Catch);
+  const gatewayGuardsMapChildren = guardMap?.get(DecoratorMetadataName.Guard);
 
   listeners.forEach(listener => {
-    const guardsMapChildren = guardMap.get(listener.propertyKey);
-    const exceptionFilters = filterMap.get(listener.propertyKey);
+    const exceptionFilters = filterMap?.get(listener.propertyKey);
+    const guardsMapChildren = guardMap?.get(listener.propertyKey);
     const totalGuardsMapChildren = (guardsMapChildren ?? []).concat(gatewayGuardsMapChildren ?? []);
     const totalExceptionFilters = (exceptionFilters ?? []).concat(gatewayExceptionFilters ?? []);
 
