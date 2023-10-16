@@ -10,19 +10,10 @@ interface Props {
 }
 export default (props: Props) => {
   const [storeState] = store;
-  const [signInOpen, setSignInOpen] = createSignal(false);
   const [submitParams, setSubmitParams] = createSignal({
     deviceName: '',
     deviceDescription: '',
   });
-
-  let timer: number | null = null;
-  createEffect(() => {
-    if(props.open) {
-      timer = window.setTimeout(() => setSignInOpen(true), 400);
-    }
-  });
-  onCleanup(() => clearTimeout(timer));
 
   const handleInput: JSX.InputEventHandler<HTMLInputElement, InputEvent> = (e) => {
     setSubmitParams(prev => ({
@@ -42,7 +33,7 @@ export default (props: Props) => {
   }
 
   return (
-    <Popup size="medium" open={signInOpen()} class="min-h-[335px] px-4 text-center">
+    <Popup size="medium" open={props.open} class="min-h-[335px] px-4 text-center">
       <div class="flex flex-col flex-1 gap-0.5 py-4 text-left">
         <h5 class="text-lg font-medium">Welcome</h5>
         <p class="m-0 text-xs font-normal">The device is not signed up yet, please sign up.</p>

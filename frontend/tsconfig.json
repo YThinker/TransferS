@@ -10,9 +10,9 @@
     "types": ["vite/client"],
     "noEmit": true,
     "isolatedModules": true,
-    "baseUrl": ".",
+    "baseUrl": "./",
     "paths": {
       "@/*": ["src/*"]
     }
-  }
+  },
 }

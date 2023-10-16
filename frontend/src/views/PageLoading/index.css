@@ -18,3 +18,30 @@
     opacity: 1;
   }
 }
+
+.page-loading-text {
+  top: calc(50% + 48px);
+}
+
+.page-loading-enter.page-loading {
+  opacity: 0;
+  transition: opacity 0.8s;
+}
+
+.page-loading-enter-to.page-loading {
+  opacity: 1;
+}
+
+.page-loading-exit .page-loading-top,
+.page-loading-exit .page-loading-bottom {
+  transform: translateY(0);
+  transition: transform 0.8s;
+}
+
+.page-loading-exit-to .page-loading-top {
+  transform: translateY(-100%);
+}
+
+.page-loading-exit-to .page-loading-bottom {
+  transform: translateY(100%);
+}

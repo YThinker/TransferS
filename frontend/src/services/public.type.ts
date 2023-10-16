@@ -13,6 +13,7 @@ export interface RequestOptions {
 
 export interface StandardData<T = never> {
   success: boolean;
+  code: number;
   message: string;
   data: T;
 }

@@ -1,30 +1,27 @@
 import { createResource } from "solid-js";
 import TransparentLogo from "./TransparentLogo"
 import FingerprintJS from '@fingerprintjs/fingerprintjs';
-import { INIT_STATUS_ENUM, LOCAL_UUID_NAME } from "@/constants";
-import { io } from "socket.io-client";
+import { INIT_STATUS_ENUM } from "@/constants";
 import { store } from "@/store";
 import SignUpPopup from "../SignUpPopup";
 import { signIn } from "@/services/user";
 import { breakSocketWhenTimeout, establishConnection } from "@/services";
+import ApperanceTransition from "@/baseComponents/ApperanceTransition";
 
 const tipsMap = new Map([
   [INIT_STATUS_ENUM.INIT, 'Creating connection...'],
   [INIT_STATUS_ENUM.SOCKET_ERROR, 'Connection down, reconnecting...'],
+  [INIT_STATUS_ENUM.FINGER_PRINT, 'Sign in...'],
+  [INIT_STATUS_ENUM.CHECK_UDID, 'Sign in...'],
+  [INIT_STATUS_ENUM.SIGN_UP, 'Sign up...'],
+  [INIT_STATUS_ENUM.SIGN_IN, 'Sign in...'],
+  [INIT_STATUS_ENUM.WELCOME, 'Welcome'],
 ]);
 
 export default () => {
   const [storeState, setStoreState] = store;
 
-  const handleSignUpSuccess = (udid: string) => {
-    setStoreState({
-      udid: udid,
-      initStatus: INIT_STATUS_ENUM.CHECK_UDID
-    })
-  }
-
   createResource(() => storeState.initStatus, async () => {
-    console.log(storeState)
     /** 初始化socket连接 */
     if(storeState.initStatus === INIT_STATUS_ENUM.INIT) {
       const result = await establishConnection().catch(err => {
@@ -69,8 +66,12 @@ export default () => {
       const signInRes = await signIn({
         udid: storeState.udid,
         fingerprint: storeState.fingerprint
+      }).catch(err => {
+        console.error('sign in error', err);
+        if(err.code === 1001) setStoreState('initStatus', INIT_STATUS_ENUM.SIGN_UP);
+        return undefined;
       });
-      if(signInRes.success) {
+      if(signInRes?.success) {
         const { data: { token, userInfo } } = signInRes;
         storeState.io.auth['token'] = token;
         storeState.io.disconnect().connect();
@@ -84,11 +85,39 @@ export default () => {
     }
   });
 
-  return (
-    <div class="fixed inset-0 w-full h-full bg-white">
-      <SignUpPopup open={storeState.initStatus === INIT_STATUS_ENUM.SIGN_UP} onSuccess={handleSignUpSuccess}/>
-      <TransparentLogo class="w-16 h-auto text-indigo-600"/>
-      {tipsMap.get(storeState.initStatus)}
+  const handleSignUpSuccess = (udid: string) => {
+    setStoreState({
+      udid: udid,
+      initStatus: INIT_STATUS_ENUM.CHECK_UDID
+    })
+  }
+
+  const handleAnimationEntered = () => {
+    setStoreState('initStatus', INIT_STATUS_ENUM.INIT);
+  }
+
+  const renderer = (position?: string) => (
+    <div class={`relative flex flex-col justify-center items-center w-full h-[200%] bg-white ${position === 'bottom' ? '-translate-y-1/2' : ''}`}>
+      <TransparentLogo class="w-24 h-auto text-indigo-600"/>
+      <span class="absolute page-loading-text">{tipsMap.get(storeState.initStatus)}</span>
     </div>
+  )
+
+  return (
+    <>
+      <ApperanceTransition
+        in={storeState.initStatus !== INIT_STATUS_ENUM.WELCOME}
+        name='page-loading'
+        duration={800}
+        unmountOnExit
+        onEntered={handleAnimationEntered}
+      >
+        <div class="fixed z-40 inset-0 m-0 page-loading">
+          <div class="w-full h-1/2 overflow-hidden page-loading-top">{renderer()}</div>
+          <div class="w-full h-1/2 overflow-hidden page-loading-bottom">{renderer('bottom')}</div>
+        </div>
+      </ApperanceTransition>
+      <SignUpPopup open={storeState.initStatus === INIT_STATUS_ENUM.SIGN_UP} onSuccess={handleSignUpSuccess}/>
+    </>
   )
 }

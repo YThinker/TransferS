@@ -1,4 +1,4 @@
-import { ParentProps, Show, children, createEffect, createMemo, createSignal, onCleanup } from "solid-js";
+import { ParentProps, Show, children, createEffect, createMemo, createSignal, on, onCleanup } from "solid-js";
 
 interface Props {
   in?: boolean;
@@ -15,7 +15,6 @@ const ApperanceTransition = (props: ParentProps<Props>) => {
   const childrenElement = children(() => props.children);
   const firstChild = createMemo(() => childrenElement.toArray().find((item): item is HTMLElement => item instanceof HTMLElement));
 
-  const [insetIn, setInsetIn] = createSignal(props.in);
   const classMap = createMemo(() => ({
     enter: `${props.name}-enter`,
     enterTo: `${props.name}-enter-to`,
@@ -32,40 +31,45 @@ const ApperanceTransition = (props: ParentProps<Props>) => {
     firstChild().classList.remove(...Object.values(classMap()));
   }
 
+  const didItAfterOneFrame = (func: Function) => window.setTimeout(func, 16);
+
+  const handleEntered = () => {
+    removeTransitionClass();
+    props.onEntered?.();
+  };
+
+  const handleExited = () => {
+    removeTransitionClass();
+    props.onExited?.();
+  };
+
+  /** 当元素载入时 */
   const handleElementEnter = () => {
     props.onEnter?.();
-    setInsetIn(props.in);
     if(enterDuration()) {
       firstChild().classList.add(classMap().enter);
-      window.setTimeout(() => firstChild().classList.add(classMap().enterTo));
+      didItAfterOneFrame(() => firstChild().classList.add(classMap().enterTo));
       /** transition finished */
-      timer = window.setTimeout(() => {
-        removeTransitionClass();
-        props.onEntered?.();
-      }, enterDuration())
+      timer = window.setTimeout(handleEntered, enterDuration())
     }
   }
 
+  /** 当元素卸载时 */
   const handleElementExit = () => {
     props.onExit?.();
     if(exitDuration()) {
       firstChild().classList.add(classMap().exit);
-      window.setTimeout(() => firstChild().classList.add(classMap().exitTo));
+      didItAfterOneFrame(() => firstChild().classList.add(classMap().exitTo));
       /** transition finished */
-      timer = window.setTimeout(() => {
-        removeTransitionClass();
-        setInsetIn(props.in);
-        props.onExited?.();
-      }, exitDuration())
+      timer = window.setTimeout(handleExited, exitDuration())
     } else {
       /** transition finished */
       removeTransitionClass();
-      setInsetIn(props.in);
     }
   }
 
-  createEffect(() => {
-    onCleanup(() => window.clearTimeout(timer));
+  createEffect(on(() => props.in, (cur, prev) => {
+    if(cur === prev) return;
     if(timer) clearTimeout(timer);
     if(!firstChild()) return;
     if(props.in) {
@@ -73,15 +77,39 @@ const ApperanceTransition = (props: ParentProps<Props>) => {
     } else {
       handleElementExit();
     }
-  });
+  }));
+
+  onCleanup(() => window.clearTimeout(timer));
+
+  return childrenElement();
+}
+
+export default (props: ParentProps<Props>) => {
+  const [notExited, setNotExited] = createSignal(props.in);
+
+  createEffect(() => console.log(props))
+
+  const handleExited = () => {
+    props.onExited?.();
+    setNotExited(false);
+  }
+
+  const fallback = () => (
+    <ApperanceTransition
+      {...props}
+      onExited={handleExited}
+    />
+  )
+
+  const needUnmount = () => (
+    <Show when={notExited()}>
+      {fallback()}
+    </Show>
+  )
 
   return (
-    <Show when={props.unmountOnExit} fallback={childrenElement()}>
-      <Show when={insetIn()}>
-        {childrenElement()}
-      </Show>
+    <Show when={props.unmountOnExit} fallback={fallback()}>
+      {needUnmount()}
     </Show>
   )
 }
-
-export default ApperanceTransition;
